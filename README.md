@@ -3,6 +3,7 @@ This repository contains solutions to several programming problems that I've don
 
 - [Codeforces](http://codeforces.com)
 - [UVa Online Judge](https://uva.onlinejudge.org)
+- [URI](https://www.urionlinejudge.com.br/)
 - [Project Euler](https://projecteuler.net)
 
 All solutions are implemented using C++11.
