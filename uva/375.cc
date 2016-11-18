@@ -23,11 +23,15 @@ int main()
             if (radius < 1e-6) break;
             
             length += radius;
-            double h = 2 * radius;
-            double b = (B * h) / H;
             
-            H = H - h;
-            B = B - b;
+            // double h = 2 * radius;
+            // double b = (B * h) / H;
+            //
+            // H = H - h;
+            // B = B - b;
+           
+            B = (B*H - 2*B*radius) / H;
+            H -= 2 * radius;
         }
         
         printf("%13f\n", 2 * PI * length);
