@@ -82,57 +82,6 @@ public:
     }
 };
 
-class Segment
-{
-public:
-    Point A;
-    Point B;
-    
-    Segment(const Point &_A, const Point &_B) : A(_A), B(_B) { }
-
-    bool operator==(const Segment &s) const
-    {
-        return (s.A == A && s.B == B) || (s.A == B && s.B == A);
-    }
-
-    double length() const
-    {
-        return hypot(A.x - B.x, A.y - B.y);
-    }
-
-    bool contains(const Point &P) const
-    {
-        Line r(P, A);
-        Line q(P, B);
-        if (!(r == q)) return false;
-        
-        if (A.x == B.x) {
-            return min(A.y, B.y) <= P.y && P.y <= max(A.y, B.y);
-        } else {
-            return min(A.x, B.x) <= P.x && P.x <= max(A.x, B.x);
-        }
-    }
-
-    bool intersects(const Segment &s) const
-    {
-        auto d1 = D(A, B, s.A);
-        auto d2 = D(A, B, s.B);
-        
-        if ((equals(d1, 0) && contains(s.A)) || (equals(d2, 0) && contains(s.B))) {
-            return true;
-        }
-        
-        auto d3 = D(s.A, s.B, A);
-        auto d4 = D(s.A, s.B, B);
-        
-        if ((equals(d3, 0) && s.contains(A)) || (equals(d4, 0) && s.contains(B))) {
-            return true;
-        }
-        
-        return (d1 * d2 < 0) && (d3 * d4 < 0);
-    }
-};
-
 double getAngle(const Point &p, const Point &p1, const Point &p2)
 {
     double X = p.distTo(p1);
@@ -165,9 +114,9 @@ bool isParallelogram(double a1, double a2, double a3, double a4, double A, doubl
 bool isTrapezium(const Point &p1, const Point &p2, const Point &p3, const Point &p4)
 {
     Line l1(p1, p2);
-    Line l2(p2, p4);
-    Line l3(p4, p3);
-    Line l4(p3, p1);
+    Line l2(p2, p3);
+    Line l3(p3, p4);
+    Line l4(p4, p1);
     
     pair<int, Point> int1 = l1.intersection(l3);
     pair<int, Point> int2 = l2.intersection(l4);
@@ -175,42 +124,29 @@ bool isTrapezium(const Point &p1, const Point &p2, const Point &p3, const Point 
     return (int1.first == 0 && int2.first != 0) || (int1.first != 0 && int2.first == 0);
 }
 
-bool isSimple(const Point &p1, const Point &p2, const Point &p3, const Point &p4)
-{
-    Line l1(p1, p2);
-    Line l2(p2, p4);
-    Line l3(p4, p3);
-    Line l4(p3, p1);
-    
-    pair<int, Point> int1 = l1.intersection(l3);
-    pair<int, Point> int2 = l2.intersection(l4);
-    
-    return int1.first == 0 && int2.first == 0;
-}
-
-enum {SQUARE, RECTANGLE, RHOMBUS, PARAL, TRAP, SIMP, ORD};
+enum {SQUARE, RECTANGLE, RHOMBUS, PARAL, TRAP, ORD};
 
 int solve(vector<Point> &points)
 {
-    // p1 -> p2, p3
-    // p2 -> p1, p4
-    // p3 -> p1, p4
-    // p4 -> p2, p3
+    // p1 -> p2,p4
+    // p2 -> p3,p1
+    // p3 -> p4,p2
+    // p4 -> p1,p3
     
     Point p1 = points[0];
     Point p2 = points[1];
     Point p3 = points[2];
     Point p4 = points[3];
     
-    double p1a = getAngle(p1, p2, p3);
-    double p2a = getAngle(p2, p1, p4);
-    double p3a = getAngle(p3, p1, p4);
-    double p4a = getAngle(p4, p2, p3);
+    double p1a = getAngle(p1, p2, p4);
+    double p2a = getAngle(p2, p1, p3);
+    double p3a = getAngle(p3, p2, p4);
+    double p4a = getAngle(p4, p1, p3);
     
     double A = p1.distTo(p2);
-    double B = p2.distTo(p4);
-    double C = p4.distTo(p3);
-    double D = p3.distTo(p1);
+    double B = p2.distTo(p3);
+    double C = p3.distTo(p4);
+    double D = p4.distTo(p1);
     
     if (isSquare(p1a, p2a, p3a, p4a, A, B, C, D)) {
         return SQUARE;
@@ -219,25 +155,38 @@ int solve(vector<Point> &points)
     } else if (isRhombus(p1a, p2a, p3a, p4a, A, B, C, D)) {
         return RHOMBUS;
     } else if (isParallelogram(p1a, p2a, p3a, p4a, A, B, C, D)) {
-        // cout << "?";
         return PARAL;
     } else if (isTrapezium(p1, p2, p3, p4)) {
-        // cout << "!";
         return TRAP;
-    } else if (isSimple(p1, p2, p3, p4)) {
-        return SIMP;
     } else {
         return ORD;
     }
 }
 
-bool isQuadrilateral(const Point &p1, const Point &p2, const Point &p3, const Point &p4, double A, double B, double C, double D)
+vector<Point> convexHull(vector<Point> &P)
 {
-    Segment l1(p1, p2);
-    Segment l2(p2, p4);
-    Segment l3(p4, p3);
-    Segment l4(p3, p1);
-    return (A + B + C) > D && (A + B + D) > C && (A + C + D) > B && (B + C + D) > A && !l1.intersects(l3) && !l2.intersects(l4);
+    sort(P.begin(), P.end());
+    
+    vector<Point> L;
+    for (const Point &p : P) {
+        while (L.size() >= 2 && D(L[L.size() - 2], L[L.size() - 1], p) < 0) L.pop_back();
+        L.push_back(p);
+    }
+    
+    vector<Point> U;
+    for (auto it = P.rbegin(); it != P.rend(); it++) {
+        const Point &p = *it;
+        while (U.size() >= 2 && D(U[U.size() - 2], U[U.size() - 1], p) < 0) U.pop_back();
+        U.push_back(p);
+    }
+    
+    L.pop_back();
+    U.pop_back();
+    
+    L.reserve(L.size() + U.size());
+    L.insert(L.end(), U.begin(), U.end());
+    
+    return L;
 }
 
 int main()
@@ -249,15 +198,9 @@ int main()
     while (t--) {        
         Point p1, p2, p3, p4;
         cin >> p1.x >> p1.y >> p2.x >> p2.y >> p3.x >> p3.y >> p4.x >> p4.y;
-        vector<Point> points = {p1,p2,p3,p4};
-        
-        // BROKEN: needs to prune when permutation doesn't make sense
-        int classification = numeric_limits<int>::max();
-        do {
-            if (isQuadrilateral(points[0], points[1], points[2], points[3], p1.distTo(p2), p2.distTo(p4), p4.distTo(p3), p3.distTo(p1))) {
-                classification = min(classification, solve(points));
-            }            
-        } while (next_permutation(points.begin(), points.end()));
+        vector<Point> ps = {p1,p2,p3,p4};
+        vector<Point> points = convexHull(ps);
+        int classification = points.size() == 4 ? solve(points) : ORD;
         
         printf("Case %d: ", tc++);
         switch (classification) {
@@ -276,10 +219,7 @@ int main()
             case TRAP:
                 printf("Trapezium");
             break;
-            case SIMP:
-                printf("Simple Polygon");
-            break;
-            case ORD:
+            default:
                 printf("Ordinary Quadrilateral");
         }
         printf("\n");     
